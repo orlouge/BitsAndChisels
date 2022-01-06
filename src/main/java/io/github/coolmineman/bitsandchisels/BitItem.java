@@ -74,7 +74,7 @@ public class BitItem extends Item implements ServerPlayNetworking.PlayChannelHan
                             int x = Math.floorMod(i, 16);
                             int y = Math.floorMod(j, 16);
                             int z = Math.floorMod(k, 16);
-                            if (world.canSetBlock(mut) && !BitUtils.exists(BitUtils.getBit(world, mut, x, y, z))) {
+                            if (BitUtils.canPlace(player, mut, x, y, z) && world.canSetBlock(mut) && !BitUtils.exists(BitUtils.getBit(world, mut, x, y, z))) {
                                 boolean b = BitUtils.setBit(world, mut, x, y, z, state);
                                 if (b && !player.isCreative()) stack.decrement(1);
                                 if (stack.isEmpty()) {
@@ -211,57 +211,53 @@ public class BitItem extends Item implements ServerPlayNetworking.PlayChannelHan
                 z += 16;
             }
 
-            if (BitUtils.canPlace(context.getPlayer(), pos, x, y, z)) {
-                if (context.getPlayer().isSneaking()) {
-                    if (haspos1) {
-                        PacketByteBuf passedData = new PacketByteBuf(Unpooled.buffer());
-
-                        int blockXOffset = pos.getX() - block.getX();
-                        int blockYOffset = pos.getY() - block.getY();
-                        int blockZOffset = pos.getZ() - block.getZ();
-
-                        int minx = Math.min(bitx, blockXOffset * 16 + x);
-                        int miny = Math.min(bity, blockYOffset * 16 + y);
-                        int minz = Math.min(bitz, blockZOffset * 16 + z);
-
-                        int maxx = Math.max(bitx, blockXOffset * 16 + x);
-                        int maxy = Math.max(bity, blockYOffset * 16 + y);
-                        int maxz = Math.max(bitz, blockZOffset * 16 + z);
-
-                        passedData.writeBlockPos(block);
-                        passedData.writeInt(minx);
-                        passedData.writeInt(miny);
-                        passedData.writeInt(minz);
-                        passedData.writeInt(maxx);
-                        passedData.writeInt(maxy);
-                        passedData.writeInt(maxz);
-                        passedData.writeBoolean(context.getHand().equals(Hand.MAIN_HAND));
-                        ClientPlayNetworking.send(PACKET_ID, passedData);
-                        haspos1 = false;
-                        return ActionResult.SUCCESS;
-                    } else {
-                        this.block = pos;
-                        bitx = x;
-                        bity = y;
-                        bitz = z;
-                        haspos1 = true;
-                    }
-                } else {
+            if (context.getPlayer().isSneaking()) {
+                if (haspos1) {
                     PacketByteBuf passedData = new PacketByteBuf(Unpooled.buffer());
-                    passedData.writeBlockPos(pos);
-                    passedData.writeInt(x);
-                    passedData.writeInt(y);
-                    passedData.writeInt(z);
-                    passedData.writeInt(x);
-                    passedData.writeInt(y);
-                    passedData.writeInt(z);
+
+                    int blockXOffset = pos.getX() - block.getX();
+                    int blockYOffset = pos.getY() - block.getY();
+                    int blockZOffset = pos.getZ() - block.getZ();
+
+                    int minx = Math.min(bitx, blockXOffset * 16 + x);
+                    int miny = Math.min(bity, blockYOffset * 16 + y);
+                    int minz = Math.min(bitz, blockZOffset * 16 + z);
+
+                    int maxx = Math.max(bitx, blockXOffset * 16 + x);
+                    int maxy = Math.max(bity, blockYOffset * 16 + y);
+                    int maxz = Math.max(bitz, blockZOffset * 16 + z);
+
+                    passedData.writeBlockPos(block);
+                    passedData.writeInt(minx);
+                    passedData.writeInt(miny);
+                    passedData.writeInt(minz);
+                    passedData.writeInt(maxx);
+                    passedData.writeInt(maxy);
+                    passedData.writeInt(maxz);
                     passedData.writeBoolean(context.getHand().equals(Hand.MAIN_HAND));
                     ClientPlayNetworking.send(PACKET_ID, passedData);
+                    haspos1 = false;
                     return ActionResult.SUCCESS;
+                } else {
+                    this.block = pos;
+                    bitx = x;
+                    bity = y;
+                    bitz = z;
+                    haspos1 = true;
                 }
-                
+            } else {
+                PacketByteBuf passedData = new PacketByteBuf(Unpooled.buffer());
+                passedData.writeBlockPos(pos);
+                passedData.writeInt(x);
+                passedData.writeInt(y);
+                passedData.writeInt(z);
+                passedData.writeInt(x);
+                passedData.writeInt(y);
+                passedData.writeInt(z);
+                passedData.writeBoolean(context.getHand().equals(Hand.MAIN_HAND));
+                ClientPlayNetworking.send(PACKET_ID, passedData);
+                return ActionResult.SUCCESS;
             }
-            
         }
         return ActionResult.PASS;
     }
